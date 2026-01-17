@@ -117,18 +117,24 @@ def download_pdfs(pdf_links: List[Dict],
     
     for link in pdf_links:
         filename = link['filename']
+        save_path = output_dir / filename
         
-        if filename in existing_files:
+        # FIXED: Verify file actually exists on disk, not just in cache
+        # This fixes cloud deployment where cache exists but files don't
+        if filename in existing_files and save_path.exists():
             skipped.append(filename)
             logger.debug(f"Skipping existing file: {filename}")
             continue
         
+        # If cache says downloaded but file doesn't exist, download it anyway
         if cache.is_downloaded(filename):
-            skipped.append(filename)
-            logger.debug(f"Skipping cached file: {filename}")
-            continue
+            if save_path.exists():
+                skipped.append(filename)
+                logger.debug(f"Skipping cached file: {filename}")
+                continue
+            else:
+                logger.info(f"Cache says {filename} exists but file not found, re-downloading")
         
-        save_path = output_dir / filename
         download_tasks.append({
             'url': link['url'],
             'save_path': save_path,
