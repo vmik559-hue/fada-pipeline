@@ -243,10 +243,19 @@ def process_all_pdfs(pdf_dir: Path = None,
     results = []
     
     for pdf_file in pdf_files:
-        # Skip if already processed
+        # Generate expected Excel output path
+        excel_filename = pdf_file.stem + "_tables.xlsx"
+        expected_excel_path = output_dir / excel_filename
+        
+        # FIXED: Verify Excel file actually exists, not just in cache
+        # This fixes cloud deployment where cache exists but files don't
         if cache.is_processed(pdf_file.name):
-            logger.debug(f"Skipping already processed: {pdf_file.name}")
-            continue
+            if expected_excel_path.exists():
+                logger.debug(f"Skipping already processed: {pdf_file.name}")
+                results.append(expected_excel_path)
+                continue
+            else:
+                logger.info(f"Cache says {pdf_file.name} processed but Excel not found, re-processing")
         
         try:
             excel_path = process_pdf_file(pdf_file, output_dir)
