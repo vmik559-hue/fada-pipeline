@@ -596,23 +596,9 @@ def build_consolidated_master(months: list = None, years: list = None,
     # Sort timepoints
     sorted_timepoints = sort_timepoints_columns(all_timepoints)
     
-    # NEW: If output_period specified, filter to only that period's timepoint
-    if output_period is not None:
-        output_month, output_year = output_period
-        # Build the timepoint string for the output period (e.g., "OCT'25")
-        month_abbrevs = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 
-                         'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-        if 1 <= output_month <= 12:
-            target_timepoint = f"{month_abbrevs[output_month - 1]}'{str(output_year)[-2:]}"
-            # Filter sorted_timepoints to only include the target timepoint
-            filtered_timepoints = [tp for tp in sorted_timepoints if tp == target_timepoint]
-            if filtered_timepoints:
-                sorted_timepoints = filtered_timepoints
-                logger.info(f"Filtered output to period: {target_timepoint}")
-            else:
-                # If exact match not found, keep original (fallback)
-                logger.warning(f"Target timepoint {target_timepoint} not found, keeping all timepoints")
-    
+    # Include all timepoints up to and including the selected period
+    # No filtering - all available data columns will be included
+
     logger.info(f"Extracted data from {len(all_data)} table types")
     logger.info(f"Total timepoints: {len(sorted_timepoints)}")
     

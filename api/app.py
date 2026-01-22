@@ -229,10 +229,6 @@ DASHBOARD_HTML = '''<!DOCTYPE html>
                         <button data-year="2022" class="year-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">2022</button>
                         <button data-year="2021" class="year-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">2021</button>
                         <button data-year="2020" class="year-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">2020</button>
-                        <button data-year="2019" class="year-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">2019</button>
-                        <button data-year="2018" class="year-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">2018</button>
-                        <button data-year="2017" class="year-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">2017</button>
-                        <button data-year="2016" class="year-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">2016</button>
                     </div>
                 </div>
             </div>
@@ -577,13 +573,12 @@ class PipelineRunner:
             
             processed = len(all_excel_files)
             progress_queue.put(f"PROGRESS|process|{downloaded}|{processed}|{total_files}|--")
-            progress_queue.put(f"STATUS|📊 Building master Excel with latest period ({latest_month}/{latest_year}) data...")
+            progress_queue.put(f"STATUS|📊 Building master Excel with all data up to {latest_month}/{latest_year}...")
             
-            # Step 4: Build consolidated master Excel, outputting only latest period
+            # Step 4: Build consolidated master Excel with all data up to selected period
             self.output_file = build_consolidated_master(
                 months=self.months,
-                years=self.years,
-                output_period=(latest_month, latest_year)
+                years=self.years
             )
             
             if self.output_file:
