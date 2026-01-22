@@ -516,41 +516,11 @@ def build_consolidated_master(months: list = None, years: list = None,
         logger.warning(f"No Excel files found in {excel_dir}")
         return None
     
-    # Filter files by months and years if specified
-    if months is not None and years is not None:
-        filtered_files = []
-        month_names = {
-            1: 'jan', 2: 'feb', 3: 'mar', 4: 'apr',
-            5: 'may', 6: 'jun', 7: 'jul', 8: 'aug',
-            9: 'sep', 10: 'oct', 11: 'nov', 12: 'dec'
-        }
-        
-        for file_path in all_excel_files:
-            filename = file_path.stem.lower()
-            
-            # Check if file matches any of the selected month/year combinations
-            for year in years:
-                for month in months:
-                    month_name = month_names.get(month, '')
-                    year_str = str(year)
-                    year_short = year_str[-2:]
-                    
-                    # Match patterns like "jan_2025", "january_25", "01_2025", etc.
-                    if (month_name in filename and (year_str in filename or year_short in filename)):
-                        if file_path not in filtered_files:
-                            filtered_files.append(file_path)
-                            logger.info(f"Including file for {month}/{year}: {file_path.name}")
-                        break
-        
-        if filtered_files:
-            excel_files = filtered_files
-            logger.info(f"Filtered to {len(excel_files)} files for selected periods")
-        else:
-            # If no matches found, use all files (fallback)
-            logger.warning(f"No files matched selected periods, using all {len(all_excel_files)} files")
-            excel_files = all_excel_files
-    else:
-        excel_files = all_excel_files
+    # Process ALL available Excel files to get complete historical data
+    # When user selects a period (e.g., Jan 2025), we include all data up to that point
+    # The months/years parameters are used for filename generation, not for filtering
+    excel_files = all_excel_files
+
     
     logger.info(f"Building consolidated master from {len(excel_files)} files")
     
