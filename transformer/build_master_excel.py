@@ -478,6 +478,7 @@ def build_master_excel_for_month(month: int, year: int,
 
 
 def build_consolidated_master(months: list = None, years: list = None,
+                               output_period: tuple = None,
                                excel_dir: Path = None,
                                output_dir: Path = None) -> Optional[Path]:
     """
@@ -485,10 +486,12 @@ def build_consolidated_master(months: list = None, years: list = None,
     
     UPDATED: Now filters Excel files based on user-selected months and years.
     If months/years are None, processes all available files.
+    If output_period is specified, filters final output to only that period's data.
     
     Args:
         months: List of months (1-12) to include
         years: List of years to include
+        output_period: Optional tuple (month, year) - if provided, output only this period's data
         excel_dir: Directory containing extracted Excel files
         output_dir: Directory to save master file
         
@@ -592,6 +595,23 @@ def build_consolidated_master(months: list = None, years: list = None,
     
     # Sort timepoints
     sorted_timepoints = sort_timepoints_columns(all_timepoints)
+    
+    # NEW: If output_period specified, filter to only that period's timepoint
+    if output_period is not None:
+        output_month, output_year = output_period
+        # Build the timepoint string for the output period (e.g., "OCT'25")
+        month_abbrevs = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 
+                         'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+        if 1 <= output_month <= 12:
+            target_timepoint = f"{month_abbrevs[output_month - 1]}'{str(output_year)[-2:]}"
+            # Filter sorted_timepoints to only include the target timepoint
+            filtered_timepoints = [tp for tp in sorted_timepoints if tp == target_timepoint]
+            if filtered_timepoints:
+                sorted_timepoints = filtered_timepoints
+                logger.info(f"Filtered output to period: {target_timepoint}")
+            else:
+                # If exact match not found, keep original (fallback)
+                logger.warning(f"Target timepoint {target_timepoint} not found, keeping all timepoints")
     
     logger.info(f"Extracted data from {len(all_data)} table types")
     logger.info(f"Total timepoints: {len(sorted_timepoints)}")
@@ -698,7 +718,17 @@ def build_consolidated_master(months: list = None, years: list = None,
         ws.column_dimensions[chr(64 + col_idx) if col_idx <= 26 else 'A'].width = 12
     
     # Generate filename with period info
-    if months and years:
+    if output_period is not None:
+        # Use the output period for filename
+        output_month, output_year = output_period
+        month_abbrevs = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        if 1 <= output_month <= 12:
+            month_name = month_abbrevs[output_month - 1]
+            output_filename = f"Master_FADA_Data_{month_name}_{output_year}.xlsx"
+        else:
+            output_filename = f"Master_FADA_Data_{output_year}_{output_month:02d}.xlsx"
+    elif months and years:
         period_str = f"_{min(years)}_{max(years)}"
         output_filename = f"Master_FADA_Data{period_str}.xlsx"
     else:

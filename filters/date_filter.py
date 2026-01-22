@@ -131,6 +131,38 @@ def filter_by_date_range(pdf_links: List[Dict],
     return filtered
 
 
+def find_latest_period(pdf_links: List[Dict]) -> tuple:
+    """
+    Find the latest (most recent) month/year from PDF links.
+    
+    Args:
+        pdf_links: List of PDF link dicts with optional 'month', 'year' keys
+        
+    Returns:
+        Tuple of (month, year) of latest period, or (None, None) if no valid periods
+    """
+    latest_date = 0
+    latest_month, latest_year = None, None
+    
+    for link in pdf_links:
+        link_month = link.get('month')
+        link_year = link.get('year')
+        
+        # If month/year not in link dict, try to parse from filename
+        if link_month is None or link_year is None:
+            parsed_month, parsed_year = parse_month_year_from_filename(link.get('filename', ''))
+            link_month = link_month or parsed_month
+            link_year = link_year or parsed_year
+        
+        if link_month and link_year:
+            date_val = link_year * 12 + link_month
+            if date_val > latest_date:
+                latest_date = date_val
+                latest_month, latest_year = link_month, link_year
+    
+    return latest_month, latest_year
+
+
 def get_month_name(month_num: int) -> str:
     """Get full month name from month number."""
     month_names = [

@@ -28,7 +28,7 @@ from scraper.fetch_pdf_links import fetch_pdf_links, get_available_months
 from downloader.download_pdfs import download_pdfs
 from extractor.pdf_to_excel import process_all_pdfs
 from transformer.build_master_excel import build_master_excel_for_month, build_consolidated_master
-from filters.date_filter import filter_by_month_year
+from filters.date_filter import filter_by_month_year, filter_by_date_range, find_latest_period
 
 app = Flask(__name__)
 
@@ -510,34 +510,44 @@ class PipelineRunner:
         self.output_file = None
     
     def run(self, progress_queue: queue.Queue):
-        """Run the complete pipeline for all selected month/year combinations."""
+        """Run the complete pipeline for all selected month/year combinations.
+        
+        UPDATED: Now fetches all data UP TO selected period and outputs only latest period.
+        """
         try:
             # Step 1: Fetch PDF links
             progress_queue.put(f"STATUS|📡 Fetching PDF links from FADA website...")
             pdf_links = fetch_pdf_links()
             
-            # Collect all filtered links for all month/year combinations
-            all_filtered_links = []
-            period_info = []
+            # NEW LOGIC: Determine the max selected period (end boundary)
+            max_year = max(self.years)
+            # Find the max month for the max year (or just use max month if single year)
+            max_month = max(self.months)
             
-            for year in self.years:
-                for month in self.months:
-                    filtered = filter_by_month_year(pdf_links, month, year)
-                    if filtered:
-                        all_filtered_links.extend(filtered)
-                        period_info.append(f"{month}/{year}")
+            # Use filter_by_date_range to get ALL PDFs from beginning up to selected period
+            # Using 2016 as earliest year (FADA data availability start)
+            all_filtered_links = filter_by_date_range(
+                pdf_links,
+                start_month=1, start_year=2016,
+                end_month=max_month, end_year=max_year
+            )
             
             # Remove duplicates (if any)
             unique_links = list({link['url']: link for link in all_filtered_links}.values())
             
             if not unique_links:
-                periods_str = ', '.join([f"{m}/{y}" for y in self.years for m in self.months])
-                progress_queue.put(f"ERROR|No PDFs found for selected periods: {periods_str}")
+                progress_queue.put(f"ERROR|No PDFs found up to {max_month}/{max_year}")
+                return
+            
+            # Identify the latest available period from the fetched links
+            latest_month, latest_year = find_latest_period(unique_links)
+            
+            if latest_month is None or latest_year is None:
+                progress_queue.put(f"ERROR|Could not determine latest available period")
                 return
             
             total_files = len(unique_links)
-            periods_count = len(self.months) * len(self.years)
-            progress_queue.put(f"STATUS|📥 Found {total_files} PDFs across {periods_count} period(s). Downloading...")
+            progress_queue.put(f"STATUS|📥 Found {total_files} PDFs up to {max_month}/{max_year}. Latest available: {latest_month}/{latest_year}. Downloading...")
             
             # Step 2: Download all PDFs
             downloaded = 0
@@ -551,21 +561,29 @@ class PipelineRunner:
             
             progress_queue.put(f"STATUS|📄 Processing {downloaded} PDFs...")
             
-            # Step 3: Extract tables from PDFs for all months/years
+            # Step 3: Extract tables from PDFs for all available months/years
+            # Process all periods that were downloaded
             all_excel_files = []
-            for year in self.years:
-                for month in self.months:
-                    excel_files = process_all_pdfs(month=month, year=year)
-                    all_excel_files.extend(excel_files)
+            processed_periods = set()
+            for link in unique_links:
+                link_month = link.get('month')
+                link_year = link.get('year')
+                if link_month and link_year:
+                    period_key = (link_month, link_year)
+                    if period_key not in processed_periods:
+                        processed_periods.add(period_key)
+                        excel_files = process_all_pdfs(month=link_month, year=link_year)
+                        all_excel_files.extend(excel_files)
             
             processed = len(all_excel_files)
             progress_queue.put(f"PROGRESS|process|{downloaded}|{processed}|{total_files}|--")
-            progress_queue.put(f"STATUS|📊 Building consolidated master Excel file...")
+            progress_queue.put(f"STATUS|📊 Building master Excel with latest period ({latest_month}/{latest_year}) data...")
             
-            # Step 4: Build consolidated master Excel for all periods
+            # Step 4: Build consolidated master Excel, outputting only latest period
             self.output_file = build_consolidated_master(
                 months=self.months,
-                years=self.years
+                years=self.years,
+                output_period=(latest_month, latest_year)
             )
             
             if self.output_file:
@@ -574,6 +592,7 @@ class PipelineRunner:
                     'file': str(self.output_file),
                     'months': self.months,
                     'years': self.years,
+                    'latest_period': (latest_month, latest_year),
                     'timestamp': time.time()
                 }
                 progress_queue.put(f"COMPLETE|{self.session_id}")
