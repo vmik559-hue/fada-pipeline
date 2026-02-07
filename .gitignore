@@ -54,3 +54,6 @@ Thumbs.db
 # Environment variables
 .env
 .env.local
+
+# Google Sheets credentials (SECRET - never commit!)
+credentials.json

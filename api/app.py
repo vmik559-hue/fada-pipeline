@@ -22,13 +22,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from flask import Flask, render_template_string, request, jsonify, Response, send_file
 
-from config import OUTPUT_DIR, PDF_DIR, EXCEL_DIR
+from config import OUTPUT_DIR, PDF_DIR, EXCEL_DIR, GOOGLE_SHEETS_CONFIG
 from utils.logger import get_logger, setup_logger
 from scraper.fetch_pdf_links import fetch_pdf_links, get_available_months
 from downloader.download_pdfs import download_pdfs
 from extractor.pdf_to_excel import process_all_pdfs
 from transformer.build_master_excel import build_master_excel_for_month, build_consolidated_master
 from filters.date_filter import filter_by_month_year, filter_by_date_range, find_latest_period
+from utils.google_sheets_handler import GoogleSheetsHandler
 
 app = Flask(__name__)
 
@@ -235,6 +236,21 @@ DASHBOARD_HTML = '''<!DOCTYPE html>
                 </div>
             </div>
             
+            <!-- Google Sheets Sync Toggle -->
+            <div class="flex justify-center pt-4">
+                <label class="flex items-center gap-3 cursor-pointer group">
+                    <div class="relative">
+                        <input type="checkbox" id="syncToSheets" checked class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-checked:bg-cyan-600 transition-colors"></div>
+                        <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
+                    </div>
+                    <span class="text-sm text-slate-300 group-hover:text-cyan-300 transition-colors flex items-center gap-2">
+                        <span class="material-icons-round text-lg">cloud_upload</span>
+                        Sync to Google Sheets
+                    </span>
+                </label>
+            </div>
+            
             <!-- Generate Button -->
             <div class="pt-6 flex justify-center">
                 <button id="runBtn" onclick="runPipeline()" class="relative group overflow-hidden rounded-xl btn-3d text-white font-bold text-lg py-5 px-12 transition-all duration-300 active:scale-[0.98] w-full md:w-auto min-w-[300px]">
@@ -410,8 +426,9 @@ function runPipeline() {
         eventSource.close();
     }
     
-    // Start SSE connection - sends ALL months and years
-    const url = `/stream?months=${months}&years=${years}`;
+    // Start SSE connection - sends ALL months, years, and sync flag
+    const syncToSheets = document.getElementById('syncToSheets').checked;
+    const url = `/stream?months=${months}&years=${years}&sync=${syncToSheets}`;
     eventSource = new EventSource(url);
     
     eventSource.onmessage = function(event) {
@@ -481,10 +498,11 @@ class PipelineRunner:
     UPDATED: Now supports multiple months and years for full timeline processing.
     """
     
-    def __init__(self, months: list, years: list, session_id: str):
+    def __init__(self, months: list, years: list, session_id: str, sync_to_sheets: bool = True):
         self.months = months  # List of months to process
         self.years = years    # List of years to process
         self.session_id = session_id
+        self.sync_to_sheets = sync_to_sheets  # Whether to sync to Google Sheets
         self.output_file = None
     
     def run(self, progress_queue: queue.Queue):
@@ -572,6 +590,58 @@ class PipelineRunner:
                     'latest_period': (latest_month, latest_year),
                     'timestamp': time.time()
                 }
+                
+                # Step 5: Sync to Google Sheets (if enabled)
+                if self.sync_to_sheets and GOOGLE_SHEETS_CONFIG.get('enabled', False):
+                    progress_queue.put(f"STATUS|☁️ Syncing to Google Sheets...")
+                    try:
+                        # Read the generated Excel to get data for Sheets
+                        import pandas as pd
+                        from transformer.build_master_excel import sort_timepoints_columns
+                        
+                        # Initialize handler
+                        handler = GoogleSheetsHandler(
+                            credentials_file=GOOGLE_SHEETS_CONFIG['credentials_file'],
+                            spreadsheet_id=GOOGLE_SHEETS_CONFIG['spreadsheet_id'],
+                            worksheet_name=GOOGLE_SHEETS_CONFIG['worksheet_name']
+                        )
+                        
+                        # Read Excel and prepare data for Sheets
+                        excel_df = pd.read_excel(self.output_file, sheet_name='Master Data', header=None)
+                        
+                        # Extract data structure
+                        header_row = excel_df.iloc[0].tolist()
+                        timepoints = [tp for tp in header_row[1:] if pd.notna(tp) and tp]
+                        
+                        # Build data dict for handler
+                        data = {}
+                        for idx in range(1, len(excel_df)):
+                            row = excel_df.iloc[idx]
+                            label = row.iloc[0]
+                            if pd.notna(label) and label:
+                                row_data = {}
+                                for col_idx, tp in enumerate(timepoints, 1):
+                                    val = row.iloc[col_idx] if col_idx < len(row) else None
+                                    if pd.notna(val):
+                                        row_data[tp] = val
+                                if row_data:
+                                    data[str(label)] = row_data
+                        
+                        # Sync with progress callback
+                        def sheets_progress(msg):
+                            progress_queue.put(f"STATUS|☁️ {msg}")
+                        
+                        success = handler.sync_data(data, timepoints, sheets_progress)
+                        
+                        if success:
+                            progress_queue.put(f"STATUS|✅ Google Sheets sync complete!")
+                        else:
+                            progress_queue.put(f"STATUS|⚠️ Google Sheets sync had issues")
+                            
+                    except Exception as sheets_error:
+                        logger.error(f"Google Sheets sync error: {sheets_error}")
+                        progress_queue.put(f"STATUS|⚠️ Sheets sync failed: {str(sheets_error)[:50]}")
+                
                 progress_queue.put(f"COMPLETE|{self.session_id}")
             else:
                 progress_queue.put(f"ERROR|Failed to generate consolidated master Excel file")
@@ -597,9 +667,11 @@ def stream():
     # Parse comma-separated months and years
     months_str = request.args.get('months', '1')
     years_str = request.args.get('years', '2025')
+    sync_str = request.args.get('sync', 'true')
     
     months = [int(m) for m in months_str.split(',') if m.strip()]
     years = [int(y) for y in years_str.split(',') if y.strip()]
+    sync_to_sheets = sync_str.lower() == 'true'
     
     # Generate session ID based on all periods
     session_id = f"multi_{len(months)}m_{len(years)}y_{int(time.time())}"
@@ -608,7 +680,7 @@ def stream():
         local_queue = queue.Queue()
         
         # Start pipeline in background thread with ALL months and years
-        runner = PipelineRunner(months, years, session_id)
+        runner = PipelineRunner(months, years, session_id, sync_to_sheets)
         thread = threading.Thread(target=runner.run, args=(local_queue,))
         thread.start()
         

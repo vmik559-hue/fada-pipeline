@@ -109,3 +109,11 @@ CACHE_FILE = DATA_DIR / 'processed_cache.json'
 
 # Master output file name pattern
 MASTER_FILE_PATTERN = 'Master_FADA_Data_{year}_{month:02d}.xlsx'
+
+# ============== GOOGLE SHEETS CONFIGURATION ==============
+GOOGLE_SHEETS_CONFIG = {
+    'credentials_file': os.environ.get('GOOGLE_SHEETS_CREDENTIALS', str(BASE_DIR / 'credentials.json')),
+    'spreadsheet_id': os.environ.get('GOOGLE_SHEETS_ID', '14K0eRTkf-I62-QH4IHUTPNS7UQVQgJKKWs3u5F9lVjY'),
+    'worksheet_name': os.environ.get('GOOGLE_SHEETS_WORKSHEET', 'Master Data'),
+    'enabled': os.environ.get('ENABLE_GOOGLE_SHEETS', 'true').lower() == 'true'
+}
