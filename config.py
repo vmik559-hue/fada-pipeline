@@ -111,9 +111,45 @@ CACHE_FILE = DATA_DIR / 'processed_cache.json'
 MASTER_FILE_PATTERN = 'Master_FADA_Data_{year}_{month:02d}.xlsx'
 
 # ============== GOOGLE SHEETS CONFIGURATION ==============
+# For local development: use credentials.json file
+# For Railway/production: set GOOGLE_SHEETS_CREDENTIALS_JSON as base64-encoded JSON
+
+def _get_credentials_path():
+    """Get the path to Google Sheets credentials.
+    
+    Priority:
+    1. GOOGLE_SHEETS_CREDENTIALS_JSON env var (base64-encoded JSON) - for Railway
+    2. GOOGLE_SHEETS_CREDENTIALS env var (file path)
+    3. Local credentials.json file
+    """
+    import base64
+    import tempfile
+    
+    # Check for base64-encoded credentials (Railway)
+    b64_creds = os.environ.get('GOOGLE_SHEETS_CREDENTIALS_JSON')
+    if b64_creds:
+        try:
+            # Decode and write to temp file
+            creds_json = base64.b64decode(b64_creds).decode('utf-8')
+            temp_file = Path(tempfile.gettempdir()) / 'gsheets_credentials.json'
+            temp_file.write_text(creds_json)
+            return str(temp_file)
+        except Exception as e:
+            print(f"Warning: Failed to decode GOOGLE_SHEETS_CREDENTIALS_JSON: {e}")
+    
+    # Check for file path
+    creds_path = os.environ.get('GOOGLE_SHEETS_CREDENTIALS')
+    if creds_path:
+        return creds_path
+    
+    # Default to local file
+    return str(BASE_DIR / 'credentials.json')
+
+
 GOOGLE_SHEETS_CONFIG = {
-    'credentials_file': os.environ.get('GOOGLE_SHEETS_CREDENTIALS', str(BASE_DIR / 'credentials.json')),
+    'credentials_file': _get_credentials_path(),
     'spreadsheet_id': os.environ.get('GOOGLE_SHEETS_ID', '14K0eRTkf-I62-QH4IHUTPNS7UQVQgJKKWs3u5F9lVjY'),
     'worksheet_name': os.environ.get('GOOGLE_SHEETS_WORKSHEET', 'Master Data'),
     'enabled': os.environ.get('ENABLE_GOOGLE_SHEETS', 'true').lower() == 'true'
 }
+
