@@ -607,21 +607,24 @@ class PipelineRunner:
                         )
                         
                         # Read Excel and prepare data for Sheets
+                        # Note: Row 0 is title "Retail Data Summary", Row 1 is headers, Row 2+ is data
                         excel_df = pd.read_excel(self.output_file, sheet_name='Master Data', header=None)
                         
-                        # Extract data structure
-                        header_row = excel_df.iloc[0].tolist()
-                        timepoints = [tp for tp in header_row[1:] if pd.notna(tp) and tp]
+                        # Row 1 contains the actual headers (Item, DEC'17, MAR'18, etc.)
+                        header_row = excel_df.iloc[1].tolist()
+                        timepoints = [str(tp) for tp in header_row[1:] if pd.notna(tp) and tp]
                         
-                        # Build data dict for handler
+                        logger.info(f"Google Sheets: Found {len(timepoints)} timepoints, {len(excel_df) - 2} data rows")
+                        
+                        # Build data dict for handler (start from row 2 which is data)
                         data = {}
-                        for idx in range(1, len(excel_df)):
+                        for idx in range(2, len(excel_df)):
                             row = excel_df.iloc[idx]
                             label = row.iloc[0]
                             if pd.notna(label) and label:
                                 row_data = {}
-                                for col_idx, tp in enumerate(timepoints, 1):
-                                    val = row.iloc[col_idx] if col_idx < len(row) else None
+                                for col_idx, tp in enumerate(timepoints):
+                                    val = row.iloc[col_idx + 1] if (col_idx + 1) < len(row) else None
                                     if pd.notna(val):
                                         row_data[tp] = val
                                 if row_data:
