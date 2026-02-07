@@ -595,54 +595,66 @@ class PipelineRunner:
                 if self.sync_to_sheets and GOOGLE_SHEETS_CONFIG.get('enabled', False):
                     progress_queue.put(f"STATUS|☁️ Syncing to Google Sheets...")
                     try:
-                        # Read the generated Excel to get data for Sheets
                         import pandas as pd
-                        from transformer.build_master_excel import sort_timepoints_columns
+                        import gspread
+                        from google.oauth2.service_account import Credentials
                         
-                        # Initialize handler
-                        handler = GoogleSheetsHandler(
-                            credentials_file=GOOGLE_SHEETS_CONFIG['credentials_file'],
-                            spreadsheet_id=GOOGLE_SHEETS_CONFIG['spreadsheet_id'],
-                            worksheet_name=GOOGLE_SHEETS_CONFIG['worksheet_name']
-                        )
-                        
-                        # Read Excel and prepare data for Sheets
-                        # Note: Row 0 is title "Retail Data Summary", Row 1 is headers, Row 2+ is data
+                        # Read the entire Excel file as a raw matrix (no dict conversion)
                         excel_df = pd.read_excel(self.output_file, sheet_name='Master Data', header=None)
                         
-                        # Row 1 contains the actual headers (Item, DEC'17, MAR'18, etc.)
-                        header_row = excel_df.iloc[1].tolist()
-                        timepoints = [str(tp) for tp in header_row[1:] if pd.notna(tp) and tp]
+                        # Convert to list of lists, replacing NaN with empty string
+                        # This preserves EXACT structure of Excel
+                        data_matrix = excel_df.fillna('').values.tolist()
                         
-                        logger.info(f"Google Sheets: Found {len(timepoints)} timepoints, {len(excel_df) - 2} data rows")
+                        # Convert all values to strings for Sheets API
+                        for i, row in enumerate(data_matrix):
+                            data_matrix[i] = [str(val) if val != '' else '' for val in row]
                         
-                        # Build data dict for handler (start from row 2 which is data)
-                        data = {}
-                        for idx in range(2, len(excel_df)):
-                            row = excel_df.iloc[idx]
-                            label = row.iloc[0]
-                            if pd.notna(label) and label:
-                                row_data = {}
-                                for col_idx, tp in enumerate(timepoints):
-                                    val = row.iloc[col_idx + 1] if (col_idx + 1) < len(row) else None
-                                    if pd.notna(val):
-                                        row_data[tp] = val
-                                if row_data:
-                                    data[str(label)] = row_data
+                        logger.info(f"Google Sheets: Syncing {len(data_matrix)} rows × {len(data_matrix[0])} columns")
+                        progress_queue.put(f"STATUS|☁️ Preparing {len(data_matrix)} rows × {len(data_matrix[0])} columns...")
                         
-                        # Sync with progress callback
-                        def sheets_progress(msg):
-                            progress_queue.put(f"STATUS|☁️ {msg}")
+                        # Connect to Google Sheets
+                        SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+                        credentials = Credentials.from_service_account_file(
+                            GOOGLE_SHEETS_CONFIG['credentials_file'],
+                            scopes=SCOPES
+                        )
+                        client = gspread.authorize(credentials)
+                        spreadsheet = client.open_by_key(GOOGLE_SHEETS_CONFIG['spreadsheet_id'])
                         
-                        success = handler.sync_data(data, timepoints, sheets_progress)
+                        # Get or create worksheet
+                        worksheet_name = GOOGLE_SHEETS_CONFIG['worksheet_name']
+                        try:
+                            worksheet = spreadsheet.worksheet(worksheet_name)
+                            # Clear existing data
+                            worksheet.clear()
+                            progress_queue.put(f"STATUS|☁️ Cleared existing worksheet, writing fresh data...")
+                        except gspread.WorksheetNotFound:
+                            worksheet = spreadsheet.add_worksheet(
+                                title=worksheet_name,
+                                rows=max(len(data_matrix) + 10, 1000),
+                                cols=max(len(data_matrix[0]) + 5, 100)
+                            )
+                            progress_queue.put(f"STATUS|☁️ Created new worksheet: {worksheet_name}")
                         
-                        if success:
-                            progress_queue.put(f"STATUS|✅ Google Sheets sync complete!")
-                        else:
-                            progress_queue.put(f"STATUS|⚠️ Google Sheets sync had issues")
-                            
+                        # Resize worksheet if needed
+                        if worksheet.row_count < len(data_matrix) or worksheet.col_count < len(data_matrix[0]):
+                            worksheet.resize(rows=len(data_matrix) + 10, cols=len(data_matrix[0]) + 5)
+                        
+                        # Write entire matrix in one batch (exact Excel replication)
+                        progress_queue.put(f"STATUS|☁️ Writing {len(data_matrix)} rows to Google Sheets...")
+                        worksheet.update('A1', data_matrix, value_input_option='RAW')
+                        
+                        # Format header row (row 2 = index 1) as bold
+                        worksheet.format('2:2', {'textFormat': {'bold': True}})
+                        
+                        logger.info(f"Google Sheets: Successfully wrote {len(data_matrix)} rows × {len(data_matrix[0])} columns")
+                        progress_queue.put(f"STATUS|✅ Google Sheets sync complete! ({len(data_matrix)} rows)")
+                        
                     except Exception as sheets_error:
                         logger.error(f"Google Sheets sync error: {sheets_error}")
+                        import traceback
+                        logger.error(traceback.format_exc())
                         progress_queue.put(f"STATUS|⚠️ Sheets sync failed: {str(sheets_error)[:50]}")
                 
                 progress_queue.put(f"COMPLETE|{self.session_id}")
