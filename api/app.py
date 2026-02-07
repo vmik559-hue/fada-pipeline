@@ -192,44 +192,46 @@ DASHBOARD_HTML = '''<!DOCTYPE html>
                 <!-- Month Selection -->
                 <div class="space-y-4">
                     <div class="flex items-center justify-between">
-                        <label class="text-xs font-bold text-cyan-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                        <label for="monthSelect" class="text-xs font-bold text-cyan-400 uppercase tracking-widest ml-1 flex items-center gap-2">
                             <span class="material-icons-round text-sm">calendar_month</span> Select Months
                         </label>
                         <button id="selectAllMonths" onclick="toggleAllMonths()" class="text-[10px] text-cyan-400 hover:text-cyan-300 uppercase tracking-wider cursor-pointer bg-cyan-900/20 px-2 py-1 rounded border border-cyan-500/30 hover:bg-cyan-900/40 transition-all">Select All</button>
                     </div>
-                    <div id="monthGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                        <button data-month="1" class="month-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">Jan</button>
-                        <button data-month="2" class="month-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">Feb</button>
-                        <button data-month="3" class="month-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">Mar</button>
-                        <button data-month="4" class="month-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">Apr</button>
-                        <button data-month="5" class="month-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">May</button>
-                        <button data-month="6" class="month-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">Jun</button>
-                        <button data-month="7" class="month-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">Jul</button>
-                        <button data-month="8" class="month-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">Aug</button>
-                        <button data-month="9" class="month-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">Sep</button>
-                        <button data-month="10" class="month-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">Oct</button>
-                        <button data-month="11" class="month-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">Nov</button>
-                        <button data-month="12" class="month-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">Dec</button>
-                    </div>
+                    <select id="monthSelect" multiple class="w-full h-48 bg-slate-800/50 border border-slate-700 rounded-xl text-slate-300 text-sm px-3 py-2 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 transition-all cursor-pointer">
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                    <p class="text-[10px] text-slate-500 ml-1">Hold Ctrl/Cmd to select multiple months</p>
                 </div>
                 
                 <!-- Year Selection -->
                 <div class="space-y-4">
                     <div class="flex items-center justify-between">
-                        <label class="text-xs font-bold text-cyan-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                        <label for="yearSelect" class="text-xs font-bold text-cyan-400 uppercase tracking-widest ml-1 flex items-center gap-2">
                             <span class="material-icons-round text-sm">history</span> Select Years
                         </label>
                         <span class="text-[10px] text-slate-500 uppercase tracking-wider">Fiscal Periods</span>
                     </div>
-                    <div id="yearGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                        <button data-year="2026" class="year-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">2026</button>
-                        <button data-year="2025" class="year-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">2025</button>
-                        <button data-year="2024" class="year-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">2024</button>
-                        <button data-year="2023" class="year-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">2023</button>
-                        <button data-year="2022" class="year-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">2022</button>
-                        <button data-year="2021" class="year-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">2021</button>
-                        <button data-year="2020" class="year-btn py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200">2020</button>
-                    </div>
+                    <select id="yearSelect" multiple class="w-full h-48 bg-slate-800/50 border border-slate-700 rounded-xl text-slate-300 text-sm px-3 py-2 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 transition-all cursor-pointer">
+                        <option value="2026">2026</option>
+                        <option value="2025">2025</option>
+                        <option value="2024">2024</option>
+                        <option value="2023">2023</option>
+                        <option value="2022">2022</option>
+                        <option value="2021">2021</option>
+                        <option value="2020">2020</option>
+                    </select>
+                    <p class="text-[10px] text-slate-500 ml-1">Hold Ctrl/Cmd to select multiple years</p>
                 </div>
             </div>
             
@@ -306,46 +308,19 @@ let selectedYears = [];
 let eventSource = null;
 let currentSessionId = null;
 
-// Style classes for button states
-const SELECTED_CLASS = "py-2 px-1 text-sm rounded-lg border-cyan-500/50 bg-cyan-900/20 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.15)] transition-all duration-200 border";
-const UNSELECTED_CLASS = "py-2 px-1 text-sm rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-all duration-200";
-
-// ============== MONTH BUTTON TOGGLE LOGIC ==============
-document.querySelectorAll('.month-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const month = parseInt(this.dataset.month);
-        const idx = selectedMonths.indexOf(month);
-        
-        if (idx > -1) {
-            // Deselect
-            selectedMonths.splice(idx, 1);
-            this.className = UNSELECTED_CLASS;
-        } else {
-            // Select
-            selectedMonths.push(month);
-            this.className = SELECTED_CLASS;
-        }
-        selectedMonths.sort((a, b) => a - b);
-    });
+// ============== MONTH SELECT CHANGE LOGIC ==============
+const monthSelect = document.getElementById('monthSelect');
+monthSelect.addEventListener('change', function() {
+    selectedMonths = Array.from(this.selectedOptions).map(opt => parseInt(opt.value));
+    selectedMonths.sort((a, b) => a - b);
+    updateSelectAllButtonText();
 });
 
-// ============== YEAR BUTTON TOGGLE LOGIC ==============
-document.querySelectorAll('.year-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const year = parseInt(this.dataset.year);
-        const idx = selectedYears.indexOf(year);
-        
-        if (idx > -1) {
-            // Deselect
-            selectedYears.splice(idx, 1);
-            this.className = UNSELECTED_CLASS;
-        } else {
-            // Select
-            selectedYears.push(year);
-            this.className = SELECTED_CLASS;
-        }
-        selectedYears.sort((a, b) => b - a);
-    });
+// ============== YEAR SELECT CHANGE LOGIC ==============
+const yearSelect = document.getElementById('yearSelect');
+yearSelect.addEventListener('change', function() {
+    selectedYears = Array.from(this.selectedOptions).map(opt => parseInt(opt.value));
+    selectedYears.sort((a, b) => b - a);
 });
 
 // ============== SET DEFAULT SELECTION (Current Month & Year) ==============
@@ -354,17 +329,17 @@ document.querySelectorAll('.year-btn').forEach(btn => {
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
     
-    // Select current month
-    const monthBtn = document.querySelector(`.month-btn[data-month="${currentMonth}"]`);
-    if (monthBtn) {
-        monthBtn.className = SELECTED_CLASS;
+    // Select current month in dropdown
+    const monthOption = monthSelect.querySelector(`option[value="${currentMonth}"]`);
+    if (monthOption) {
+        monthOption.selected = true;
         selectedMonths.push(currentMonth);
     }
     
-    // Select current year
-    const yearBtn = document.querySelector(`.year-btn[data-year="${currentYear}"]`);
-    if (yearBtn) {
-        yearBtn.className = SELECTED_CLASS;
+    // Select current year in dropdown
+    const yearOption = yearSelect.querySelector(`option[value="${currentYear}"]`);
+    if (yearOption) {
+        yearOption.selected = true;
         selectedYears.push(currentYear);
     }
 })();
@@ -372,24 +347,31 @@ document.querySelectorAll('.year-btn').forEach(btn => {
 // ============== SELECT ALL MONTHS TOGGLE ==============
 function toggleAllMonths() {
     const btn = document.getElementById('selectAllMonths');
+    const options = monthSelect.options;
     
     if (selectedMonths.length === 12) {
-        // Deselect all - clear array by setting length to 0
+        // Deselect all
+        for (let i = 0; i < options.length; i++) {
+            options[i].selected = false;
+        }
         selectedMonths.length = 0;
-        document.querySelectorAll('.month-btn').forEach(b => {
-            b.className = UNSELECTED_CLASS;
-        });
         btn.textContent = 'Select All';
     } else {
-        // Select all - clear and add all months
-        selectedMonths.length = 0;
-        for (let m = 1; m <= 12; m++) {
-            selectedMonths.push(m);
+        // Select all
+        for (let i = 0; i < options.length; i++) {
+            options[i].selected = true;
         }
-        document.querySelectorAll('.month-btn').forEach(b => {
-            b.className = SELECTED_CLASS;
-        });
+        selectedMonths = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
         btn.textContent = 'Deselect All';
+    }
+}
+
+function updateSelectAllButtonText() {
+    const btn = document.getElementById('selectAllMonths');
+    if (selectedMonths.length === 12) {
+        btn.textContent = 'Deselect All';
+    } else {
+        btn.textContent = 'Select All';
     }
 }
 
