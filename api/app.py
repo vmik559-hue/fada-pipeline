@@ -46,6 +46,7 @@ active_sessions = {}
 # ============== DASHBOARD HTML TEMPLATE ==============
 # UI REDESIGN: Updated with premium glassmorphism design and multi-select timeline
 # All existing functionality preserved - only UI structure and styling changed
+# Added Google Sheet Link injection
 DASHBOARD_HTML = '''<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8"/>
@@ -272,6 +273,16 @@ DASHBOARD_HTML = '''<!DOCTYPE html>
                     </span>
                 </label>
             </div>
+            
+            <!-- Google Sheet Link (Always Visible if Configured) -->
+            {% if google_sheet_url %}
+            <div class="flex justify-center -mt-2">
+                <a href="{{ google_sheet_url }}" target="_blank" class="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors border-b border-dashed border-cyan-500/30 hover:border-cyan-300 pb-0.5">
+                    <span class="material-icons-round text-sm">open_in_new</span>
+                    Open Linked Google Sheet
+                </a>
+            </div>
+            {% endif %}
             
             <!-- Generate Button -->
             <div class="pt-4 flex justify-center">
@@ -652,7 +663,11 @@ class PipelineRunner:
 @app.route('/')
 def index():
     """Serve the dashboard."""
-    return render_template_string(DASHBOARD_HTML)
+    # Construct Google Sheet URL
+    spreadsheet_id = GOOGLE_SHEETS_CONFIG.get('spreadsheet_id')
+    google_sheet_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}" if spreadsheet_id else None
+    
+    return render_template_string(DASHBOARD_HTML, google_sheet_url=google_sheet_url)
 
 
 @app.route('/stream')
