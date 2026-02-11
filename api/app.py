@@ -95,12 +95,6 @@ DASHBOARD_HTML = '''<!DOCTYPE html>
         border: 1px solid rgba(99, 102, 241, 0.2);
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
     }
-    .btn-grid-selected {
-        background: rgba(6, 182, 212, 0.15);
-        border-color: #06b6d4;
-        color: #22d3ee;
-        box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
-    }
     .btn-3d {
         background: linear-gradient(135deg, #4f46e5, #06b6d4);
         box-shadow: 
@@ -137,6 +131,62 @@ DASHBOARD_HTML = '''<!DOCTYPE html>
     @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     #downloadBtn { display: none; }
     #downloadBtn.show { display: flex; animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+    
+    /* Calendar Styles */
+    .calendar-container {
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        border-radius: 1rem;
+        overflow: hidden;
+    }
+    .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background: rgba(30, 41, 59, 0.4);
+        border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+    }
+    .month-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.75rem;
+        padding: 1.5rem;
+    }
+    .month-btn {
+        padding: 1rem 0.5rem;
+        text-align: center;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        color: #94a3b8;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+    .month-btn:hover {
+        background: rgba(6, 182, 212, 0.1);
+        color: #22d3ee;
+        border-color: rgba(6, 182, 212, 0.2);
+    }
+    .month-btn.selected {
+        background: rgba(6, 182, 212, 0.2);
+        border-color: #06b6d4;
+        color: #fff;
+        box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
+        font-weight: 700;
+    }
+    .year-btn {
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        color: #94a3b8;
+        transition: all 0.2s;
+    }
+    .year-btn:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.1);
+    }
 </style>
 </head>
 <body class="bg-dark-950 text-gray-200 min-h-screen flex flex-col font-sans transition-colors duration-300 relative overflow-x-hidden selection:bg-cyan-500 selection:text-white">
@@ -162,7 +212,7 @@ DASHBOARD_HTML = '''<!DOCTYPE html>
 </header>
 
 <!-- Main Content -->
-<main class="flex-grow flex flex-col items-center justify-center px-4 py-8 z-10 w-full max-w-6xl mx-auto">
+<main class="flex-grow flex flex-col items-center justify-center px-4 py-8 z-10 w-full max-w-4xl mx-auto">
     
     <!-- Status Badge -->
     <div class="mb-8 inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-500/30 bg-cyan-900/10 backdrop-blur-sm shadow-[0_0_15px_rgba(6,182,212,0.1)]">
@@ -171,12 +221,12 @@ DASHBOARD_HTML = '''<!DOCTYPE html>
     </div>
     
     <!-- Hero Section -->
-    <div class="text-center mb-12 max-w-2xl relative">
-        <h2 class="text-5xl md:text-6xl font-bold text-white mb-6 font-display tracking-tight drop-shadow-lg">
-            FADA <span class="text-cyan-400 inline-block filter drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">Data</span> Dashboard
+    <div class="text-center mb-10 max-w-2xl relative">
+        <h2 class="text-4xl md:text-5xl font-bold text-white mb-4 font-display tracking-tight drop-shadow-lg">
+            FADA <span class="text-cyan-400 inline-block filter drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">Calendar</span>
         </h2>
-        <p class="text-lg text-slate-400 leading-relaxed font-light">
-            Securely extract vehicle retail data streams. Configure temporal parameters to generate consolidated intelligence reports.
+        <p class="text-base text-slate-400 leading-relaxed font-light">
+            Select a specific month and year to generate the intelligence report.
         </p>
     </div>
     
@@ -185,59 +235,31 @@ DASHBOARD_HTML = '''<!DOCTYPE html>
         <div class="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent opacity-70"></div>
         <div class="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent opacity-30"></div>
         
-        <div class="p-8 md:p-10 space-y-10">
+        <div class="p-8 md:p-10 space-y-8">
             
-            <!-- Selection Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-                
-                <!-- Month Selection -->
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <label for="monthSelect" class="text-xs font-bold text-cyan-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                            <span class="material-icons-round text-sm">calendar_month</span> Select Months
-                        </label>
-                        <button id="selectAllMonths" onclick="toggleAllMonths()" class="text-[10px] text-cyan-400 hover:text-cyan-300 uppercase tracking-wider cursor-pointer bg-cyan-900/20 px-2 py-1 rounded border border-cyan-500/30 hover:bg-cyan-900/40 transition-all">Select All</button>
+            <!-- Calendar Widget -->
+            <div class="max-w-sm mx-auto">
+                <div class="calendar-container shadow-2xl">
+                    <!-- Year Header -->
+                    <div class="calendar-header">
+                        <button onclick="changeYear(-1)" class="year-btn">
+                            <span class="material-icons-round">chevron_left</span>
+                        </button>
+                        <span id="yearDisplay" class="text-xl font-bold text-white tracking-widest font-display">2026</span>
+                        <button onclick="changeYear(1)" class="year-btn">
+                            <span class="material-icons-round">chevron_right</span>
+                        </button>
                     </div>
-                    <select id="monthSelect" multiple class="w-full h-48 bg-slate-800/50 border border-slate-700 rounded-xl text-slate-300 text-sm px-3 py-2 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 transition-all cursor-pointer">
-                        <option value="1">January</option>
-                        <option value="2">February</option>
-                        <option value="3">March</option>
-                        <option value="4">April</option>
-                        <option value="5">May</option>
-                        <option value="6">June</option>
-                        <option value="7">July</option>
-                        <option value="8">August</option>
-                        <option value="9">September</option>
-                        <option value="10">October</option>
-                        <option value="11">November</option>
-                        <option value="12">December</option>
-                    </select>
-                    <p class="text-[10px] text-slate-500 ml-1">Hold Ctrl/Cmd to select multiple months</p>
-                </div>
-                
-                <!-- Year Selection -->
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <label for="yearSelect" class="text-xs font-bold text-cyan-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                            <span class="material-icons-round text-sm">history</span> Select Years
-                        </label>
-                        <span class="text-[10px] text-slate-500 uppercase tracking-wider">Fiscal Periods</span>
+                    
+                    <!-- Month Grid -->
+                    <div id="monthGrid" class="month-grid">
+                        <!-- JS will populate this -->
                     </div>
-                    <select id="yearSelect" multiple class="w-full h-48 bg-slate-800/50 border border-slate-700 rounded-xl text-slate-300 text-sm px-3 py-2 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 transition-all cursor-pointer">
-                        <option value="2026">2026</option>
-                        <option value="2025">2025</option>
-                        <option value="2024">2024</option>
-                        <option value="2023">2023</option>
-                        <option value="2022">2022</option>
-                        <option value="2021">2021</option>
-                        <option value="2020">2020</option>
-                    </select>
-                    <p class="text-[10px] text-slate-500 ml-1">Hold Ctrl/Cmd to select multiple years</p>
                 </div>
             </div>
             
             <!-- Google Sheets Sync Toggle -->
-            <div class="flex justify-center pt-4">
+            <div class="flex justify-center pt-2">
                 <label class="flex items-center gap-3 cursor-pointer group">
                     <div class="relative">
                         <input type="checkbox" id="syncToSheets" checked class="sr-only peer">
@@ -252,165 +274,109 @@ DASHBOARD_HTML = '''<!DOCTYPE html>
             </div>
             
             <!-- Generate Button -->
-            <div class="pt-6 flex justify-center">
-                <button id="runBtn" onclick="runPipeline()" class="relative group overflow-hidden rounded-xl btn-3d text-white font-bold text-lg py-5 px-12 transition-all duration-300 active:scale-[0.98] w-full md:w-auto min-w-[300px]">
+            <div class="pt-4 flex justify-center">
+                <button id="runBtn" onclick="runPipeline()" class="relative group overflow-hidden rounded-xl btn-3d text-white font-bold text-lg py-4 px-10 transition-all duration-300 active:scale-[0.98] min-w-[250px]">
                     <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out skew-y-12"></div>
                     <div id="btnContent" class="relative flex items-center justify-center gap-3">
                         <span class="material-icons-round text-2xl">rocket_launch</span>
-                        <span>GENERATE MASTER EXCEL</span>
+                        <span>GENERATE REPORT</span>
                     </div>
                 </button>
             </div>
             
             <!-- Status Display -->
-            <div id="status" class="text-center p-4 text-slate-300 bg-slate-900/30 rounded-xl min-h-[60px] flex items-center justify-center"></div>
+            <div id="status" class="text-center p-3 text-slate-300 bg-slate-900/30 rounded-xl min-h-[50px] flex items-center justify-center text-sm"></div>
             
             <!-- Progress Container -->
             <div id="progressContainer" class="bg-slate-900/50 rounded-xl p-6 border border-slate-700/50">
-                <div class="grid grid-cols-3 gap-4 mb-6">
-                    <div class="text-center p-4 bg-slate-800/50 rounded-lg border border-slate-700/30">
-                        <div class="text-2xl mb-1">📥</div>
-                        <div id="downloadedCount" class="text-2xl font-bold text-cyan-400">0</div>
-                        <div class="text-xs text-slate-500 uppercase tracking-wider">Downloaded</div>
+                <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div class="text-center p-3 bg-slate-800/50 rounded-lg border border-slate-700/30">
+                        <div class="text-xl mb-1">📥</div>
+                        <div id="downloadedCount" class="text-xl font-bold text-cyan-400">0</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider">Downloaded</div>
                     </div>
-                    <div class="text-center p-4 bg-slate-800/50 rounded-lg border border-slate-700/30">
-                        <div class="text-2xl mb-1">📄</div>
-                        <div id="processedCount" class="text-2xl font-bold text-cyan-400">0</div>
-                        <div class="text-xs text-slate-500 uppercase tracking-wider">Processed</div>
+                    <div class="text-center p-3 bg-slate-800/50 rounded-lg border border-slate-700/30">
+                        <div class="text-xl mb-1">📄</div>
+                        <div id="processedCount" class="text-xl font-bold text-cyan-400">0</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider">Processed</div>
                     </div>
-                    <div class="text-center p-4 bg-slate-800/50 rounded-lg border border-slate-700/30">
-                        <div class="text-2xl mb-1">⏱️</div>
-                        <div id="etaCount" class="text-2xl font-bold text-cyan-400">--</div>
-                        <div class="text-xs text-slate-500 uppercase tracking-wider">ETA</div>
+                    <div class="text-center p-3 bg-slate-800/50 rounded-lg border border-slate-700/30">
+                        <div class="text-xl mb-1">⏱️</div>
+                        <div id="etaCount" class="text-xl font-bold text-cyan-400">--</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider">ETA</div>
                     </div>
                 </div>
-                <div class="bg-slate-800/50 h-8 rounded-full overflow-hidden shadow-inner">
-                    <div id="progressBar" class="h-full bg-gradient-to-r from-indigo-500 via-cyan-500 to-emerald-500 transition-all duration-400 flex items-center justify-center text-white font-bold text-sm" style="width: 0%">0%</div>
+                <div class="bg-slate-800/50 h-6 rounded-full overflow-hidden shadow-inner">
+                    <div id="progressBar" class="h-full bg-gradient-to-r from-indigo-500 via-cyan-500 to-emerald-500 transition-all duration-400 flex items-center justify-center text-white font-bold text-xs" style="width: 0%">0%</div>
                 </div>
             </div>
             
             <!-- Download Button -->
             <div class="flex justify-center">
-                <button id="downloadBtn" onclick="downloadFile()" class="items-center gap-3 py-4 px-8 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 transition-all duration-300">
+                <button id="downloadBtn" onclick="downloadFile()" class="items-center gap-3 py-3 px-6 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 transition-all duration-300">
                     <span class="material-icons-round">download</span>
                     <span>Download Master Excel</span>
                 </button>
-            </div>
-            
-            <!-- Info Card -->
-            <div class="bg-slate-900/50 rounded-xl p-5 border border-slate-700/50 flex items-start gap-4 shadow-inner">
-                <div class="flex-shrink-0 mt-0.5">
-                    <span class="material-icons-round text-cyan-400">info</span>
-                </div>
-                <div class="text-sm text-slate-400 leading-relaxed">
-                    <span class="font-medium text-slate-200">Pipeline Context:</span>
-                    This system interfaces directly with <span class="text-cyan-400 font-medium">FADA data repositories</span>. Automated parsing engines extract tabular data from authorized press releases, normalizing the dataset across vehicle segments (2W, 3W, PV, CV, Tractors) into a unified analytic structure.
-                </div>
             </div>
         </div>
     </div>
     
     <!-- Footer -->
-    <footer class="mt-12 text-center text-sm text-slate-600 pb-6">
+    <footer class="mt-8 text-center text-xs text-slate-600 pb-6">
         <p>© 2025 FADA Data Intelligence Unit. All rights reserved.</p>
     </footer>
 </main>
 
 <script>
-// ============== CENTRAL STATE MANAGEMENT ==============
-// Timeline selection state - acts as single source of truth
-let selectedMonths = [];
-let selectedYears = [];
+// ============== CALENDAR STATE MANAGEMENT ==============
+let currentYear = new Date().getFullYear();
+let selectedYear = currentYear;
+let selectedMonth = new Date().getMonth() + 1; // 1-12
 let eventSource = null;
 let currentSessionId = null;
 
-// ============== MONTH SELECT CHANGE LOGIC ==============
-const monthSelect = document.getElementById('monthSelect');
-monthSelect.addEventListener('change', function() {
-    selectedMonths = Array.from(this.selectedOptions).map(opt => parseInt(opt.value));
-    selectedMonths.sort((a, b) => a - b);
-    updateSelectAllButtonText();
-});
+// Initialize
+renderCalendar();
 
-// ============== YEAR SELECT CHANGE LOGIC ==============
-const yearSelect = document.getElementById('yearSelect');
-yearSelect.addEventListener('change', function() {
-    selectedYears = Array.from(this.selectedOptions).map(opt => parseInt(opt.value));
-    selectedYears.sort((a, b) => b - a);
-});
-
-// ============== SET DEFAULT SELECTION (Current Month & Year) ==============
-(function initializeDefaults() {
-    const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
+function renderCalendar() {
+    // Update year display
+    document.getElementById('yearDisplay').textContent = selectedYear;
     
-    // Select current month in dropdown
-    const monthOption = monthSelect.querySelector(`option[value="${currentMonth}"]`);
-    if (monthOption) {
-        monthOption.selected = true;
-        selectedMonths.push(currentMonth);
-    }
+    // Generate grid
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const grid = document.getElementById('monthGrid');
+    grid.innerHTML = '';
     
-    // Select current year in dropdown
-    const yearOption = yearSelect.querySelector(`option[value="${currentYear}"]`);
-    if (yearOption) {
-        yearOption.selected = true;
-        selectedYears.push(currentYear);
-    }
-})();
-
-// ============== SELECT ALL MONTHS TOGGLE ==============
-function toggleAllMonths() {
-    const btn = document.getElementById('selectAllMonths');
-    const options = monthSelect.options;
-    
-    if (selectedMonths.length === 12) {
-        // Deselect all
-        for (let i = 0; i < options.length; i++) {
-            options[i].selected = false;
-        }
-        selectedMonths.length = 0;
-        btn.textContent = 'Select All';
-    } else {
-        // Select all
-        for (let i = 0; i < options.length; i++) {
-            options[i].selected = true;
-        }
-        selectedMonths = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-        btn.textContent = 'Deselect All';
-    }
+    months.forEach((m, index) => {
+        const monthNum = index + 1;
+        const btn = document.createElement('div');
+        btn.className = `month-btn ${monthNum === selectedMonth ? 'selected' : ''}`;
+        btn.textContent = m;
+        btn.onclick = () => selectMonth(monthNum);
+        grid.appendChild(btn);
+    });
 }
 
-function updateSelectAllButtonText() {
-    const btn = document.getElementById('selectAllMonths');
-    if (selectedMonths.length === 12) {
-        btn.textContent = 'Deselect All';
-    } else {
-        btn.textContent = 'Select All';
-    }
+function changeYear(delta) {
+    selectedYear += delta;
+    renderCalendar();
+}
+
+function selectMonth(m) {
+    selectedMonth = m;
+    renderCalendar();
 }
 
 // ============== PIPELINE EXECUTION ==============
-// UPDATED: Now processes ALL selected months and years
 function runPipeline() {
-    // Validate selection
-    if (selectedMonths.length === 0 || selectedYears.length === 0) {
-        document.getElementById('status').innerHTML = '⚠️ Please select at least one month and one year.';
-        return;
-    }
-    
-    // Send ALL selected months and years as comma-separated values
-    const months = selectedMonths.join(',');
-    const years = selectedYears.join(',');
-    
     // Disable button
     const btn = document.getElementById('runBtn');
     btn.disabled = true;
     document.getElementById('btnContent').innerHTML = '<div class="loading-spinner"></div><span>Processing...</span>';
     
     // Show progress
-    document.getElementById('status').innerHTML = '<div class="loading-spinner"></div> Initializing pipeline for ' + selectedMonths.length + ' month(s) × ' + selectedYears.length + ' year(s)...';
+    const monthName = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][selectedMonth - 1];
+    document.getElementById('status').innerHTML = `<div class="loading-spinner"></div> Initializing for ${monthName} ${selectedYear}...`;
     document.getElementById('progressContainer').classList.add('show');
     document.getElementById('downloadBtn').classList.remove('show');
     
@@ -426,9 +392,9 @@ function runPipeline() {
         eventSource.close();
     }
     
-    // Start SSE connection - sends ALL months, years, and sync flag
+    // Start SSE connection
     const syncToSheets = document.getElementById('syncToSheets').checked;
-    const url = `/stream?months=${months}&years=${years}&sync=${syncToSheets}`;
+    const url = `/stream?month=${selectedMonth}&year=${selectedYear}&sync=${syncToSheets}`;
     eventSource = new EventSource(url);
     
     eventSource.onmessage = function(event) {
@@ -476,11 +442,9 @@ function runPipeline() {
 function resetButton() {
     const btn = document.getElementById('runBtn');
     btn.disabled = false;
-    document.getElementById('btnContent').innerHTML = '<span class="material-icons-round text-2xl">rocket_launch</span><span>GENERATE MASTER EXCEL</span>';
+    document.getElementById('btnContent').innerHTML = '<span class="material-icons-round text-2xl">rocket_launch</span><span>GENERATE REPORT</span>';
 }
 
-// ============== DOWNLOAD FUNCTION ==============
-// UNCHANGED: Uses session-based download (only filtered data)
 function downloadFile() {
     if (currentSessionId) {
         window.location.href = '/download?session=' + currentSessionId;
@@ -610,6 +574,24 @@ class PipelineRunner:
                         for i, row in enumerate(data_matrix):
                             data_matrix[i] = [str(val) if val != '' else '' for val in row]
                         
+                        # === NEW LOGIC: Duplicate Column C (index 2) ===
+                        if len(data_matrix) > 0 and len(data_matrix[0]) >= 3:
+                            # We need to duplicate the 3rd column (index 2) twice at the beginning
+                            # This means prepending it to each row
+                            
+                            # Note: Logic was requested as "add the two column in the begining and then pouplate the data from C column"
+                            # I will interpret this as inserting two new columns at index 0 and 1, both having values from the original index 2.
+                            
+                            for row in data_matrix:
+                                # Original Column C value (index 2)
+                                col_c_val = row[2]
+                                # Insert at 0 (becomes new A) and then again (becomes new B)
+                                # Actually, inserting at 0 shifts everything.
+                                # So: Insert at 0. Then insert at 0 again.
+                                row.insert(0, col_c_val)
+                                row.insert(0, col_c_val)
+
+                        
                         logger.info(f"Google Sheets: Syncing {len(data_matrix)} rows × {len(data_matrix[0])} columns")
                         progress_queue.put(f"STATUS|☁️ Preparing {len(data_matrix)} rows × {len(data_matrix[0])} columns...")
                         
@@ -677,19 +659,25 @@ def index():
 def stream():
     """SSE endpoint for pipeline progress.
     
-    UPDATED: Now accepts multiple months and years as comma-separated values.
+    UPDATED: Now accepts single month and year.
     """
-    # Parse comma-separated months and years
-    months_str = request.args.get('months', '1')
-    years_str = request.args.get('years', '2025')
+    # Parse month and year
+    month_str = request.args.get('month', str(time.localtime().tm_mon))
+    year_str = request.args.get('year', str(time.localtime().tm_year))
     sync_str = request.args.get('sync', 'true')
     
-    months = [int(m) for m in months_str.split(',') if m.strip()]
-    years = [int(y) for y in years_str.split(',') if y.strip()]
+    try:
+        month = int(month_str)
+        year = int(year_str)
+        months = [month]
+        years = [year]
+    except ValueError:
+        return "Invalid date format", 400
+        
     sync_to_sheets = sync_str.lower() == 'true'
     
-    # Generate session ID based on all periods
-    session_id = f"multi_{len(months)}m_{len(years)}y_{int(time.time())}"
+    # Generate session ID based on period
+    session_id = f"report_{month}_{year}_{int(time.time())}"
     
     def generate():
         local_queue = queue.Queue()
